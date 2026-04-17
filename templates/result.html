@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prediction Result – Rainfall Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--bg:#060d1a;--surface:#0d1f35;--panel:#0f2540;--border:rgba(255,255,255,0.08);--accent:#38bdf8;--text:#e2edf8;--muted:rgba(226,237,248,0.4);--font:'Outfit',sans-serif;--result-color:#38bdf8;--result-glow:rgba(56,189,248,0.25);}
+    body{min-height:100vh;background:var(--bg);font-family:var(--font);color:var(--text);display:flex;flex-direction:column;align-items:center;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 60% 45% at 20% 25%,var(--result-glow) 0%,transparent 60%);pointer-events:none;}
+    .particles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+    .particle{position:absolute;top:-80px;border-radius:2px;animation:ptfall linear infinite;}
+    @keyframes ptfall{to{transform:translateY(110vh) rotate(20deg);}}
+    .page{position:relative;z-index:1;width:100%;max-width:700px;padding:56px 20px 80px;}
+    .result-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:48px 40px;text-align:center;box-shadow:0 28px 90px rgba(0,0,0,0.55);animation:popIn .5s cubic-bezier(.22,.68,0,1.2) both;margin-bottom:28px;}
+    @keyframes popIn{from{opacity:0;transform:scale(.94) translateY(24px);}to{opacity:1;transform:scale(1) translateY(0);}}
+    .result-icon{font-size:5rem;line-height:1;display:block;margin-bottom:20px;filter:drop-shadow(0 0 28px var(--result-color));animation:float 3s ease-in-out infinite;}
+    @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+    .result-label{font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+    .result-text{font-size:clamp(2.4rem,6vw,3.6rem);font-weight:800;letter-spacing:-1.5px;color:var(--result-color);text-shadow:0 0 40px var(--result-glow);line-height:1.05;}
+    .confidence-bar-wrap{margin:28px auto 0;max-width:320px;}
+    .conf-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-bottom:8px;}
+    .conf-bar{height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;}
+    .conf-fill{height:100%;background:var(--result-color);border-radius:3px;box-shadow:0 0 8px var(--result-color);transition:width 1s cubic-bezier(.22,.68,0,1);width:0;}
+    .summary-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 32px;margin-bottom:24px;animation:popIn .5s .12s cubic-bezier(.22,.68,0,1.2) both;}
+    .summary-title{font-size:.7rem;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);margin-bottom:18px;}
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;}
+    @media(max-width:480px){.summary-grid{grid-template-columns:1fr;}}
+    .summary-row{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--panel);border-radius:8px;border:1px solid var(--border);}
+    .summary-key{font-size:.78rem;color:var(--muted);}
+    .summary-val{font-size:.85rem;font-weight:600;color:var(--text);}
+    .btn-back{display:block;width:100%;padding:14px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-family:var(--font);font-size:.95rem;font-weight:600;cursor:pointer;text-decoration:none;text-align:center;transition:border-color .2s,color .2s,background .2s;animation:popIn .5s .22s cubic-bezier(.22,.68,0,1.2) both;}
+    .btn-back:hover{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,0.05);}
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+  <div class="page">
+    <div class="result-card">
+      <span class="result-icon" id="icon">⛅</span>
+      <p class="result-label">Prediction Result</p>
+      <p class="result-text">{{ prediction }}</p>
+      {% if confidence is not none %}
+      <div class="confidence-bar-wrap">
+        <div class="conf-label"><span>Confidence</span><span>{{ confidence }}%</span></div>
+        <div class="conf-bar"><div class="conf-fill" id="confFill" data-pct="{{ confidence }}"></div></div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="summary-card">
+      <p class="summary-title">📋 Input Values Used</p>
+      <div class="summary-grid">
+        {% for feature in features %}
+        <div class="summary-row">
+          <span class="summary-key">{{ feature.label }}</span>
+          <span class="summary-val">{{ values[feature.name] }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <a class="btn-back" href="/">← Predict Again</a>
+  </div>
+  <script>
+    const isRain="{{ prediction }}"==="Rain";
+    const color=isRain?'#38bdf8':'#34d399';
+    document.documentElement.style.setProperty('--result-color',color);
+    document.documentElement.style.setProperty('--result-glow',isRain?'rgba(56,189,248,0.25)':'rgba(52,211,153,0.22)');
+    document.getElementById('icon').textContent=isRain?'🌧️':'☀️';
+    const fill=document.getElementById('confFill');
+    if(fill)setTimeout(()=>fill.style.width=fill.dataset.pct+'%',200);
+    const c=document.getElementById('particles');
+    for(let i=0;i<50;i++){const p=document.createElement('div');p.className='particle';if(isRain){p.style.cssText=`left:${Math.random()*100}%;width:1px;height:${40+Math.random()*60}px;background:linear-gradient(to bottom,transparent,rgba(56,189,248,0.3));animation-duration:${1.5+Math.random()*3}s;animation-delay:${Math.random()*5}s;opacity:${0.2+Math.random()*0.4};`;}else{const s=4+Math.random()*4;p.style.cssText=`left:${Math.random()*100}%;width:${s}px;height:${s}px;border-radius:50%;background:rgba(255,220,80,0.4);animation-duration:${4+Math.random()*4}s;animation-delay:${Math.random()*6}s;opacity:${0.2+Math.random()*0.5};`;}c.appendChild(p);}
+  </script>
+</body>
+</html>

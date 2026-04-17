@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Predict – Rainfall Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #060d1a;
+      --surface: #0d1f35;
+      --panel:   #0f2540;
+      --border:  rgba(255,255,255,0.09);
+      --accent:  #38bdf8;
+      --text:    #e2edf8;
+      --muted:   rgba(226,237,248,0.42);
+      --font:    'Outfit', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      font-family: var(--font);
+      color: var(--text);
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 65% 50% at 15% 20%, rgba(56,189,248,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 40% at 85% 80%, rgba(14,165,233,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ── Navbar ─────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(6,13,26,0.75);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 9px;
+      font-size: 1.05rem; font-weight: 800; text-decoration: none; color: var(--text);
+    }
+    .nav-links { display: flex; align-items: center; gap: 14px; }
+    .nav-links a {
+      font-size: .84rem; color: var(--muted); text-decoration: none;
+      padding: 7px 14px; border-radius: 8px;
+      transition: background .2s, color .2s;
+    }
+    .nav-links a:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .btn-logout {
+      padding: 8px 18px;
+      border: 1px solid var(--border); border-radius: 9px;
+      background: transparent; color: var(--muted);
+      font-family: var(--font); font-size: .83rem; cursor: pointer;
+      text-decoration: none;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .btn-logout:hover { border-color: #f87171; color: #fca5a5; background: rgba(248,113,113,0.08); }
+
+    /* ── Page ───────────────────────────────────── */
+    main {
+      position: relative; z-index: 1;
+      max-width: 760px; margin: 0 auto;
+      padding: 50px 24px 80px;
+    }
+
+    .back { display: inline-block; margin-bottom: 22px; font-size: .84rem; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .back:hover { color: var(--accent); }
+
+    .page-header { text-align: center; margin-bottom: 40px; animation: fadeUp .45s ease both; }
+    .page-header span { font-size: 3rem; display: block; }
+    .page-header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.5px; margin: 12px 0 8px; }
+    .page-header p  { font-size: .92rem; color: var(--muted); }
+
+    /* ── Form card ──────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.45);
+      animation: fadeUp .45s .08s ease both;
+    }
+    .card-title { font-size: .7rem; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: var(--muted); margin-bottom: 22px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    label  { font-size: .75rem; font-weight: 500; color: var(--muted); letter-spacing: .5px; }
+
+    input[type="number"] {
+      padding: 11px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text); font-family: var(--font); font-size: .93rem;
+      outline: none; width: 100%;
+      transition: border-color .18s, box-shadow .18s;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input:focus {
+      border-color: var(--accent);
+      background: rgba(56,189,248,0.05);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+    }
+    input::placeholder { color: rgba(226,237,248,0.18); }
+
+    .divider { height: 1px; background: var(--border); margin: 26px 0 22px; }
+
+    .btn-submit {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+      border: none; border-radius: 12px;
+      color: #fff; font-family: var(--font);
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 8px 26px rgba(14,165,233,.38);
+      transition: transform .15s, box-shadow .15s, filter .15s;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 13px 32px rgba(14,165,233,.52); filter: brightness(1.07); }
+
+    /* ── Result box ─────────────────────────────── */
+    .result {
+      margin-top: 24px; padding: 20px 24px;
+      border-radius: 13px; text-align: center;
+      font-size: 1.22rem; font-weight: 700;
+      animation: pop .4s cubic-bezier(.22,.68,0,1.3) both;
+    }
+    @keyframes pop { from{opacity:0;transform:scale(.93);} to{opacity:1;transform:scale(1);} }
+
+    .result-rain   { background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.3); color: #7dd3fc; }
+    .result-norain { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.28); color: #6ee7b7; }
+    .result-error  { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.28); color: #fca5a5; font-size:.9rem; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px);} to{opacity:1;transform:translateY(0);} }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <a class="brand" href="/home">🌧️ Rainfall Predictor</a>
+    <div class="nav-links">
+      <a href="/home">Home</a>
+      <a class="btn-logout" href="/logout">Logout</a>
+    </div>
+  </nav>
+
+  <main>
+
+    <a class="back" href="/home">← Back to Home</a>
+
+    <div class="page-header">
+      <span>🌦️</span>
+      <h1>Rainfall Prediction</h1>
+      <p>Fill in the weather parameters below and click Predict.</p>
+    </div>
+
+    <div class="card">
+      <p class="card-title">🌡 Enter Weather Parameters</p>
+
+      <!-- Prediction form — sends POST to /predict -->
+      <form method="POST" action="/predict">
+        <div class="grid">
+
+          <!-- Loop over FEATURES passed from app.py -->
+          {% for feature in features %}
+          <div class="field">
+            <label for="{{ feature.name }}">{{ feature.label }}</label>
+            <input
+              type="number"
+              id="{{ feature.name }}"
+              name="{{ feature.name }}"
+              placeholder="{{ feature.placeholder }}"
+              step="0.01"
+              required
+            />
+          </div>
+          {% endfor %}
+
+        </div>
+
+        <div class="divider"></div>
+        <button type="submit" class="btn-submit">⚡ Predict Rainfall</button>
+      </form>
+
+      <!-- Show prediction result if it exists -->
+      {% if prediction %}
+        <div class="result
+          {% if 'Rain Expected' in prediction %}result-rain
+          {% elif 'No Rain'     in prediction %}result-norain
+          {% else %}result-error{% endif %}">
+          {{ prediction }}
+        </div>
+      {% endif %}
+
+    </div>
+
+  </main>
+
+</body>
+</html>
